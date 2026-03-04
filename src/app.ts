@@ -20,15 +20,14 @@ export function createApp() {
   const app = express();
 
   app.use(helmet());
-  app.options("*", cors());
-  app.use(
+
+app.options(/.*/, cors());
+
+app.use(
   cors({
     origin: (origin, cb) => {
-      // allow non-browser clients (curl/postman) that send no Origin header
       if (!origin) return cb(null, true);
-
       if (env.corsOrigins.includes(origin)) return cb(null, true);
-
       return cb(new Error(`CORS blocked for origin: ${origin}`));
     },
     credentials: true,
