@@ -11,6 +11,8 @@ import { authMeRouter } from "./modules/auth/auth.me.routes.js";
 import { errorHandler } from "./middlewares/error.js";
 import { shopsRouter } from "./modules/shops/shops.routes.js";
 import { usersRouter } from "./modules/users/users.routes.js";
+import { productCategoriesRouter } from "./modules/products/categories/productCategories.routes.js";
+import { productsRouter } from "./modules/products/products.routes.js";
 
 export function createApp() {
   const app = express();
@@ -27,6 +29,8 @@ export function createApp() {
   app.use("/api/auth", authMeRouter);
   app.use("/api/shops", shopsRouter);
   app.use("/api/users", usersRouter);
+  app.use("/api/products/categories", productCategoriesRouter);
+  app.use("/api/products", productsRouter);
 
   app.use(errorHandler);
   return app;

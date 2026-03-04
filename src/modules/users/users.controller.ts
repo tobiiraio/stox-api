@@ -39,7 +39,7 @@ export async function inviteUser(req: Request, res: Response) {
     console.error("Invite email failed:", e);
   }
 
-  res.status(201).json({
+  return res.status(201).json({
     ok: true,
     user: { id: String(user._id), email: user.email, role: user.role, shopId: user.shopId }
   });
