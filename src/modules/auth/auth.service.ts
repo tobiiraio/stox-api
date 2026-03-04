@@ -5,6 +5,8 @@ import { sendMail } from "../../config/mail.js";
 import { Otp } from "./otp.model.js";
 import { User } from "../users/user.model.js";
 import { signAccessToken, signRefreshToken } from "../../utils/jwt.js";
+import { otpEmailTemplate } from "../notifications/templates/otp.template.js";
+import { Shop } from "../shops/shop.model.js";
 
 function generateNumericOtp(length: number) {
   let out = "";
@@ -12,28 +14,24 @@ function generateNumericOtp(length: number) {
   return out;
 }
 
-function otpEmailTemplate(code: string) {
-  return `
-    <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;">
-      <h2>Stox sign-in code</h2>
-      <p>Your verification code is:</p>
-      <div style="font-size: 28px; letter-spacing: 6px; font-weight: 700; margin: 12px 0;">${code}</div>
-      <p>This code expires in <b>${env.otp.ttlMinutes} minutes</b>.</p>
-      <p>If you didn’t request this, you can ignore this email.</p>
-    </div>
-  `;
-}
-
 export async function requestOtpService(email: string, shopId: string) {
   const parsed = z.string().email().parse(email);
   const tenant = z.string().min(2).max(100).parse(shopId);
 
   // ensure user exists (create as STAFF by default; you can tighten later)
-  await User.updateOne(
-    { email: parsed.toLowerCase(), shopId: tenant },
-    { $setOnInsert: { email: parsed.toLowerCase(), shopId: tenant, role: "STAFF", isActive: true } },
-    { upsert: true }
-  );
+  const shop = await Shop.findOne({ shopId: tenant, isActive: true });
+if (!shop) {
+  const err: any = new Error("Shop not found or inactive.");
+  err.statusCode = 404;
+  throw err;
+}
+
+const user = await User.findOne({ email: parsed.toLowerCase(), shopId: tenant, isActive: true });
+if (!user) {
+  const err: any = new Error("User not found for this shop.");
+  err.statusCode = 403;
+  throw err;
+}
 
   const code = generateNumericOtp(env.otp.length);
   const codeHash = await bcrypt.hash(code, 10);
@@ -54,7 +52,8 @@ export async function requestOtpService(email: string, shopId: string) {
     usedAt: null
   });
 
-  await sendMail(parsed, "Your Stox verification code", otpEmailTemplate(code));
+  const tpl = otpEmailTemplate({ code, ttlMinutes: env.otp.ttlMinutes });
+  await sendMail(parsed, tpl.subject, tpl.html, tpl.text);
 }
 
 export async function verifyOtpService(email: string, shopId: string, code: string) {

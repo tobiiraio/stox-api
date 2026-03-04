@@ -8,11 +8,12 @@ export const mailer = nodemailer.createTransport({
   auth: { user: env.smtp.user, pass: env.smtp.pass }
 });
 
-export async function sendMail(to: string, subject: string, html: string) {
+export async function sendMail(to: string, subject: string, html: string, text?: string) {
   await mailer.sendMail({
     from: env.smtp.from,
     to,
     subject,
-    html
+    html,
+    text
   });
 }
