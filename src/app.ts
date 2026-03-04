@@ -5,6 +5,8 @@ import morgan from "morgan";
 import compression from "compression";
 import cookieParser from "cookie-parser";
 
+import { env } from "./config/env.js";
+
 import { healthRouter } from "./modules/health/health.routes.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { authMeRouter } from "./modules/auth/auth.me.routes.js";
@@ -18,12 +20,27 @@ export function createApp() {
   const app = express();
 
   app.use(helmet());
-  app.use(cors({ origin: true, credentials: true }));
+  app.options("*", cors());
+  app.use(
+  cors({
+    origin: (origin, cb) => {
+      // allow non-browser clients (curl/postman) that send no Origin header
+      if (!origin) return cb(null, true);
+
+      if (env.corsOrigins.includes(origin)) return cb(null, true);
+
+      return cb(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    credentials: true,
+  })
+);
+
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
   app.use(compression());
   app.use(morgan("dev"));
 
+  app.get("/", (_req, res) => res.send("STOX API is running"));
   app.use("/api/health", healthRouter);
   app.use("/api/auth", authRouter);
   app.use("/api/auth", authMeRouter);
