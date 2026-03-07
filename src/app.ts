@@ -19,27 +19,28 @@ import { productsRouter } from "./modules/products/products.routes.js";
 export function createApp() {
   const app = express();
 
-  app.use(helmet());
-
-app.options(/.*/, cors());
-
-app.use(
-  cors({
+  const corsOptions: cors.CorsOptions = {
     origin: (origin, cb) => {
       if (!origin) return cb(null, true);
       if (env.corsOrigins.includes(origin)) return cb(null, true);
       return cb(new Error(`CORS blocked for origin: ${origin}`));
     },
     credentials: true,
-  })
-);
+  };
+
+  app.use(helmet());
+  app.use(cors(corsOptions));
+  app.options(/.*/, cors(corsOptions));
 
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
   app.use(compression());
   app.use(morgan("dev"));
 
-  app.get("/", (_req, res) => res.send("STOX API is running"));
+  app.get("/", (_req, res) => {
+    res.send("STOX API is running");
+  });
+
   app.use("/api/health", healthRouter);
   app.use("/api/auth", authRouter);
   app.use("/api/auth", authMeRouter);
@@ -49,5 +50,6 @@ app.use(
   app.use("/api/products", productsRouter);
 
   app.use(errorHandler);
+
   return app;
 }
