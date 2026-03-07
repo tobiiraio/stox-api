@@ -27,6 +27,12 @@ export const env = {
     from: process.env.MAIL_FROM ?? ""
   },
 
+  brevo: {
+  apiKey: process.env.BREVO_API_KEY ?? "",
+  senderEmail: process.env.BREVO_SENDER_EMAIL ?? "",
+  senderName: process.env.BREVO_SENDER_NAME ?? "STOX",
+},
+
   otp: {
     length: Number(process.env.OTP_LENGTH ?? 6),
     ttlMinutes: Number(process.env.OTP_TTL_MINUTES ?? 10)
