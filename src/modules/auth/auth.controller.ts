@@ -1,10 +1,14 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
-import { requestOtpService, verifyOtpService } from "./auth.service.js";
+import {
+  requestOtpService,
+  requestOtpForShopService,
+  verifyOtpService
+} from "./auth.service.js";
 
 const requestSchema = z.object({
   email: z.string().email(),
-  shopId: z.string().min(2).max(100)
+  shopId: z.string().min(2).max(100).optional()
 });
 
 const verifySchema = z.object({
@@ -15,12 +19,23 @@ const verifySchema = z.object({
 
 export async function requestOtp(req: Request, res: Response) {
   const { email, shopId } = requestSchema.parse(req.body);
-  await requestOtpService(email, shopId);
-  res.json({ ok: true });
+
+  const result = shopId
+    ? await requestOtpForShopService(email, shopId)
+    : await requestOtpService(email);
+
+  return res.json({
+    ok: true,
+    ...result
+  });
 }
 
 export async function verifyOtp(req: Request, res: Response) {
   const { email, shopId, code } = verifySchema.parse(req.body);
   const data = await verifyOtpService(email, shopId, code);
-  res.json({ ok: true, ...data });
+
+  return res.json({
+    ok: true,
+    ...data
+  });
 }
