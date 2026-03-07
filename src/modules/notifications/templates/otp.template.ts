@@ -5,10 +5,30 @@ export type OtpTemplateInput = {
   code: string;
   ttlMinutes: number;
   shopName?: string;
+  purpose?: "login" | "verification";
 };
 
 export function otpEmailTemplate(input: OtpTemplateInput): EmailTemplate {
-  const title = "Your login code";
+  const purpose = input.purpose ?? "login";
+
+  const title =
+    purpose === "verification" ? "Your verification code" : "Your login code";
+
+  const subject =
+    purpose === "verification"
+      ? "Stox verification code"
+      : "Stox login code";
+
+  const actionText =
+    purpose === "verification"
+      ? "Use the code below to verify your email and complete setup."
+      : "Use the code below to sign in.";
+
+  const ignoreText =
+    purpose === "verification"
+      ? "If you did not start this signup, you can ignore this email."
+      : "If you did not request this login, you can ignore this email.";
+
   const preheader = `Your Stox code is ${input.code}`;
 
   const shopLine = input.shopName
@@ -21,7 +41,7 @@ export function otpEmailTemplate(input: OtpTemplateInput): EmailTemplate {
     ${shopLine}
 
     <p style="margin:0 0 14px 0;font-size:14px;color:#111827;">
-      Use the code below to sign in. It expires in <b>${input.ttlMinutes} minutes</b>.
+      ${actionText} It expires in <b>${input.ttlMinutes} minutes</b>.
     </p>
 
     <div style="margin:16px 0 18px 0;">
@@ -31,18 +51,21 @@ export function otpEmailTemplate(input: OtpTemplateInput): EmailTemplate {
     </div>
 
     <p style="margin:0;font-size:13px;color:#6b7280;">
-      If you did not request this, you can ignore this email.
+      ${ignoreText}
     </p>
   `;
 
   return {
-    subject: "Stox login code",
+    subject,
     html: baseEmailLayout({
       title,
       preheader,
       bodyHtml,
-      footerNote: "If you did not request a login code, you can ignore this email."
+      footerNote: ignoreText
     }),
-    text: `Your Stox login code is ${input.code}. It expires in ${input.ttlMinutes} minutes.`
+    text:
+      purpose === "verification"
+        ? `Your Stox verification code is ${input.code}. It expires in ${input.ttlMinutes} minutes.`
+        : `Your Stox login code is ${input.code}. It expires in ${input.ttlMinutes} minutes.`
   };
 }
