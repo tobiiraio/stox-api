@@ -15,6 +15,10 @@ import { shopsRouter } from "./modules/shops/shops.routes.js";
 import { usersRouter } from "./modules/users/users.routes.js";
 import { productCategoriesRouter } from "./modules/products/categories/productCategories.routes.js";
 import { productsRouter } from "./modules/products/products.routes.js";
+import { inventoryRouter } from "./modules/inventory/inventory.routes.js";
+import { purchasesRouter } from "./modules/purchases/purchases.routes.js";
+import { salesRouter } from "./modules/sales/sales.routes.js";
+import { reportsRouter } from "./modules/reports/reports.routes.js";
 
 export function createApp() {
   const app = express();
@@ -48,6 +52,11 @@ export function createApp() {
   app.use("/api/users", usersRouter);
   app.use("/api/products/categories", productCategoriesRouter);
   app.use("/api/products", productsRouter);
+  app.use("/api/inventory", inventoryRouter);
+  app.use("/api/purchases", purchasesRouter);
+  app.use("/api/sales", salesRouter);
+  app.use("/api/reports", reportsRouter);
+  
 
   app.use(errorHandler);
 
