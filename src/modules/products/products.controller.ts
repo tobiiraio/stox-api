@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Types } from "mongoose";
 import { Product } from "./product.model.js";
 import { ProductCategory } from "./categories/productCategory.model.js";
+import { ensureInventoryBalance } from "../inventory/inventory.service.js";
 
 function getShopId(req: any) {
   const shopId = req.user?.shopId;
@@ -98,6 +99,8 @@ export async function createProduct(req: Request, res: Response) {
     sellPrice: data.sellPrice,
     isActive: data.isActive ?? true
   });
+
+  await ensureInventoryBalance(shopId, String(product._id));
 
   res.status(201).json({ ok: true, product });
 }
