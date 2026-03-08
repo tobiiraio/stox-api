@@ -18,6 +18,7 @@ import { productsRouter } from "./modules/products/products.routes.js";
 import { inventoryRouter } from "./modules/inventory/inventory.routes.js";
 import { purchasesRouter } from "./modules/purchases/purchases.routes.js";
 import { salesRouter } from "./modules/sales/sales.routes.js";
+import { reportsRouter } from "./modules/reports/reports.routes.js";
 
 export function createApp() {
   const app = express();
@@ -53,6 +54,7 @@ app.use(
   app.use("/api/inventory", inventoryRouter);
   app.use("/api/purchases", purchasesRouter);
   app.use("/api/sales", salesRouter);
+  app.use("/api/reports", reportsRouter);
   
 
   app.use(errorHandler);
