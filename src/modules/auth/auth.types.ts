@@ -8,6 +8,10 @@ export type VerifyOtpBody = {
   code: string;
 };
 
+export type RefreshTokenBody = {
+  refreshToken: string;
+};
+
 export type RequestOtpResult =
   | {
       mode: "OTP_SENT";

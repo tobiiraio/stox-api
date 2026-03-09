@@ -4,7 +4,7 @@ import { env } from "../../config/env.js";
 import { sendMail } from "../../config/mail.js";
 import { Otp } from "./otp.model.js";
 import { User } from "../users/user.model.js";
-import { signAccessToken, signRefreshToken } from "../../utils/jwt.js";
+import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../../utils/jwt.js";
 import { otpEmailTemplate } from "../notifications/templates/otp.template.js";
 import { newOwnerShopEmailTemplate } from "../notifications/templates/new-owner-shop.template.js";
 import { Shop } from "../shops/shop.model.js";
@@ -291,5 +291,52 @@ export async function verifyOtpService(
       shopId: user.shopId,
       role: user.role
     }
+  };
+}
+
+export async function refreshAccessTokenService(refreshToken: string) {
+  const parsedToken = z.string().min(1).parse(refreshToken);
+
+  let payload;
+  try {
+    payload = verifyRefreshToken(parsedToken);
+  } catch {
+    const err: any = new Error("Invalid or expired refresh token.");
+    err.statusCode = 401;
+    throw err;
+  }
+
+  const user = await User.findById(payload.sub);
+  if (!user) {
+    const err: any = new Error("User not found.");
+    err.statusCode = 401;
+    throw err;
+  }
+
+  if (!user.isActive) {
+    const err: any = new Error("User is inactive.");
+    err.statusCode = 403;
+    throw err;
+  }
+
+  const shop = await Shop.findOne({ shopId: user.shopId });
+  if (!shop || !shop.isActive) {
+    const err: any = new Error("Shop is inactive.");
+    err.statusCode = 403;
+    throw err;
+  }
+
+  const nextPayload = {
+    sub: String(user._id),
+    shopId: user.shopId,
+    role: user.role
+  };
+
+  const accessToken = signAccessToken(nextPayload);
+  const nextRefreshToken = signRefreshToken(nextPayload);
+
+  return {
+    accessToken,
+    refreshToken: nextRefreshToken
   };
 }
