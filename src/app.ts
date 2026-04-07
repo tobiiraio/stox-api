@@ -4,8 +4,10 @@ import helmet from "helmet";
 import morgan from "morgan";
 import compression from "compression";
 import cookieParser from "cookie-parser";
+import swaggerUi from "swagger-ui-express";
 
 import { env } from "./config/env.js";
+import { openApiSpec } from "./docs/openapi.js";
 
 import { healthRouter } from "./modules/health/health.routes.js";
 import { authRouter } from "./modules/auth/auth.routes.js";

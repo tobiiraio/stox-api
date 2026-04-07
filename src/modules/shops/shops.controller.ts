@@ -10,6 +10,7 @@ import { env } from "../../config/env.js";
 import { sendMail } from "../../config/mail.js";
 // import { newOwnerShopEmailTemplate } from "../notifications/templates/new-owner-shop.template.js";
 import { otpEmailTemplate } from "../notifications/templates/otp.template.js";
+import { shopRenamedEmailTemplate } from "../notifications/templates/shop-renamed.template.js";
 
 const createShopSchema = z.object({
   shopName: z.string().min(2).max(100),
@@ -215,12 +216,35 @@ export async function updateShop(req: Request, res: Response) {
   if (typeof data.name === "string") update.name = data.name.trim();
   if (typeof data.isActive === "boolean") update.isActive = data.isActive;
 
+  const oldShop = await Shop.findOne({ shopId });
+  if (!oldShop) {
+    return res.status(404).json({
+      ok: false,
+      message: "Shop not found"
+    });
+  }
+
   const shop = await Shop.findOneAndUpdate({ shopId }, update, { new: true });
   if (!shop) {
     return res.status(404).json({
       ok: false,
       message: "Shop not found"
     });
+  }
+
+  const isRename = typeof update.name === "string" && update.name !== oldShop.name;
+  if (isRename) {
+    const actor = await User.findById(user.sub);
+    try {
+      const tpl = shopRenamedEmailTemplate({
+        oldName: oldShop.name,
+        newName: shop.name,
+        changedByEmail: actor?.email ?? user.sub
+      });
+      await sendMail(oldShop.ownerEmail, tpl.subject, tpl.html, tpl.text);
+    } catch (mailErr) {
+      console.error("Failed to send shop-renamed email:", mailErr);
+    }
   }
 
   return res.json({
