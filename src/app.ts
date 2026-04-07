@@ -43,9 +43,11 @@ export function createApp() {
   app.use(compression());
   app.use(morgan("dev"));
 
-  app.get("/", (_req, res) => {
-    res.send("STOX API is running");
-  });
+  
+
+  app.get("/", (_req, res) => res.send("STOX API is running"));
+  app.get("/api/docs-json", (_req, res) => res.json(openApiSpec));
+  app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openApiSpec));
 
   app.use("/api/health", healthRouter);
   app.use("/api/auth", authRouter);
