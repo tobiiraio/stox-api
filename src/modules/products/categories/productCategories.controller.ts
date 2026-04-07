@@ -30,7 +30,15 @@ const listQuerySchema = z.object({
   isActive: z
     .enum(["true", "false"])
     .optional()
-    .transform((v) => (v ? v === "true" : undefined))
+    .transform((v) => (v ? v === "true" : undefined)),
+  limit: z
+    .string()
+    .optional()
+    .transform((v) => (v ? Math.min(Math.max(parseInt(v, 10), 1), 100) : 20)),
+  page: z
+    .string()
+    .optional()
+    .transform((v) => (v ? Math.max(parseInt(v, 10), 1) : 1))
 });
 
 export async function createProductCategory(req: Request, res: Response) {
@@ -59,8 +67,16 @@ export async function listProductCategories(req: Request, res: Response) {
     filter.name = { $regex: q, $options: "i" };
   }
 
-  const items = await ProductCategory.find(filter).sort({ name: 1 });
-  res.json({ ok: true, items });
+  const limit = query.limit;
+  const page = query.page;
+  const skip = (page - 1) * limit;
+
+  const [items, total] = await Promise.all([
+    ProductCategory.find(filter).sort({ name: 1 }).skip(skip).limit(limit),
+    ProductCategory.countDocuments(filter)
+  ]);
+
+  res.json({ ok: true, page, limit, total, items });
 }
 
 export async function getProductCategory(req: Request, res: Response) {

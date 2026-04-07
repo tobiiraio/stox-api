@@ -6,6 +6,7 @@ import {
   listInventoryBalances,
   getInventoryBalanceByProduct,
   listStockMovements,
+  getInventorySummary,
   adjustInventory
 } from "./inventory.controller.js";
 
@@ -16,6 +17,7 @@ inventoryRouter.use(requireAuth);
 inventoryRouter.get("/balances", asyncHandler(listInventoryBalances));
 inventoryRouter.get("/balances/:productId", asyncHandler(getInventoryBalanceByProduct));
 inventoryRouter.get("/movements", asyncHandler(listStockMovements));
+inventoryRouter.get("/summary", asyncHandler(getInventorySummary));
 
 inventoryRouter.post(
   "/adjustments",

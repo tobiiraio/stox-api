@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { Types } from "mongoose";
+import { z } from "zod";
 import { Sale } from "./sale.model.js";
 import { SaleItem } from "./saleItem.model.js";
 import { createSaleWithItems, parseCreateSaleInput } from "./sales.service.js";
@@ -32,12 +33,31 @@ export async function createSale(req: Request, res: Response) {
   });
 }
 
+const listSalesQuerySchema = z.object({
+  limit: z
+    .string()
+    .optional()
+    .transform((v) => (v ? Math.min(Math.max(parseInt(v, 10), 1), 100) : 20)),
+  page: z
+    .string()
+    .optional()
+    .transform((v) => (v ? Math.max(parseInt(v, 10), 1) : 1))
+});
+
 export async function listSales(req: Request, res: Response) {
   const shopId = getShopId(req);
+  const query = listSalesQuerySchema.parse(req.query);
 
-  const items = await Sale.find({ shopId }).sort({ soldAt: -1, createdAt: -1 });
+  const limit = query.limit;
+  const page = query.page;
+  const skip = (page - 1) * limit;
 
-  return res.json({ ok: true, items });
+  const [items, total] = await Promise.all([
+    Sale.find({ shopId }).sort({ soldAt: -1, createdAt: -1 }).skip(skip).limit(limit),
+    Sale.countDocuments({ shopId })
+  ]);
+
+  return res.json({ ok: true, page, limit, total, items });
 }
 
 export async function getSale(req: Request, res: Response) {

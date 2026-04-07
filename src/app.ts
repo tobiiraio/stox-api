@@ -4,8 +4,10 @@ import helmet from "helmet";
 import morgan from "morgan";
 import compression from "compression";
 import cookieParser from "cookie-parser";
+import swaggerUi from "swagger-ui-express";
 
 import { env } from "./config/env.js";
+import { openApiSpec } from "./docs/openapi.js";
 
 import { healthRouter } from "./modules/health/health.routes.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
@@ -23,20 +25,23 @@ import { reportsRouter } from "./modules/reports/reports.routes.js";
 export function createApp() {
   const app = express();
 
-  app.use(helmet());
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/api/docs")) return next();
+    helmet()(req, res, next);
+  });
 
-app.options(/.*/, cors());
+  app.options(/.*/, cors());
 
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      if (!origin) return cb(null, true);
-      if (env.corsOrigins.includes(origin)) return cb(null, true);
-      return cb(new Error(`CORS blocked for origin: ${origin}`));
-    },
-    credentials: true,
-  })
-);
+  app.use(
+    cors({
+      origin: (origin, cb) => {
+        if (!origin) return cb(null, true);
+        if (env.corsOrigins.includes(origin)) return cb(null, true);
+        return cb(new Error(`CORS blocked for origin: ${origin}`));
+      },
+      credentials: true,
+    })
+  );
 
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
@@ -44,6 +49,8 @@ app.use(
   app.use(morgan("dev"));
 
   app.get("/", (_req, res) => res.send("STOX API is running"));
+  app.get("/api/docs-json", (_req, res) => res.json(openApiSpec));
+  app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openApiSpec));
   app.use("/api/health", healthRouter);
   app.use("/api/auth", authRouter);
   app.use("/api/auth", authMeRouter);
