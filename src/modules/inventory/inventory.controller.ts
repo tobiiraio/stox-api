@@ -25,7 +25,15 @@ const listBalancesQuerySchema = z.object({
   lowStockOnly: z
     .enum(["true", "false"])
     .optional()
-    .transform((v) => (v ? v === "true" : undefined))
+    .transform((v) => (v ? v === "true" : undefined)),
+  limit: z
+    .string()
+    .optional()
+    .transform((v) => (v ? Math.min(Math.max(parseInt(v, 10), 1), 100) : 20)),
+  page: z
+    .string()
+    .optional()
+    .transform((v) => (v ? Math.max(parseInt(v, 10), 1) : 1))
 });
 
 const listMovementsQuerySchema = z.object({
@@ -34,7 +42,11 @@ const listMovementsQuerySchema = z.object({
   limit: z
     .string()
     .optional()
-    .transform((v) => (v ? Math.min(Math.max(parseInt(v, 10), 1), 100) : 50))
+    .transform((v) => (v ? Math.min(Math.max(parseInt(v, 10), 1), 100) : 50)),
+  page: z
+    .string()
+    .optional()
+    .transform((v) => (v ? Math.max(parseInt(v, 10), 1) : 1))
 });
 
 const adjustSchema = z.object({
@@ -102,8 +114,21 @@ export async function listInventoryBalances(req: Request, res: Response) {
 
   pipeline.push({ $sort: { "product.name": 1 } });
 
-  const items = await InventoryBalance.aggregate(pipeline);
-  return res.json({ ok: true, items });
+  const limit = query.limit;
+  const page = query.page;
+  const skip = (page - 1) * limit;
+
+  const countPipeline = [...pipeline, { $count: "total" }];
+  pipeline.push({ $skip: skip }, { $limit: limit });
+
+  const [items, countResult] = await Promise.all([
+    InventoryBalance.aggregate(pipeline),
+    InventoryBalance.aggregate(countPipeline)
+  ]);
+
+  const total = countResult[0]?.total ?? 0;
+
+  return res.json({ ok: true, page, limit, total, items });
 }
 
 export async function getInventoryBalanceByProduct(req: Request, res: Response) {
@@ -142,10 +167,79 @@ export async function listStockMovements(req: Request, res: Response) {
     filter.productId = oid;
   }
 
-  const limit = query.limit ?? 50;
-  const items = await StockMovement.find(filter).sort({ createdAt: -1 }).limit(limit);
+  const limit = query.limit;
+  const page = query.page;
+  const skip = (page - 1) * limit;
 
-  return res.json({ ok: true, items });
+  const [items, total] = await Promise.all([
+    StockMovement.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    StockMovement.countDocuments(filter)
+  ]);
+
+  return res.json({ ok: true, page, limit, total, items });
+}
+
+export async function getInventorySummary(req: Request, res: Response) {
+  const shopId = getShopId(req);
+
+  const result = await InventoryBalance.aggregate([
+    { $match: { shopId } },
+    {
+      $lookup: {
+        from: "products",
+        localField: "productId",
+        foreignField: "_id",
+        as: "product"
+      }
+    },
+    { $unwind: "$product" },
+    { $match: { "product.shopId": shopId, "product.isActive": true } },
+    {
+      $group: {
+        _id: null,
+        totalInventoryValue: {
+          $sum: { $multiply: ["$qtyOnHand", "$product.costPrice"] }
+        },
+        totalRetailValue: {
+          $sum: { $multiply: ["$qtyOnHand", "$product.sellPrice"] }
+        }
+      }
+    },
+    {
+      $project: {
+        _id: 0,
+        totalInventoryValue: 1,
+        totalRetailValue: 1,
+        potentialProfit: { $subtract: ["$totalRetailValue", "$totalInventoryValue"] },
+        margin: {
+          $cond: [
+            { $gt: ["$totalRetailValue", 0] },
+            {
+              $multiply: [
+                {
+                  $divide: [
+                    { $subtract: ["$totalRetailValue", "$totalInventoryValue"] },
+                    "$totalRetailValue"
+                  ]
+                },
+                100
+              ]
+            },
+            0
+          ]
+        }
+      }
+    }
+  ]);
+
+  const summary = result[0] ?? {
+    totalInventoryValue: 0,
+    totalRetailValue: 0,
+    potentialProfit: 0,
+    margin: 0
+  };
+
+  return res.json({ ok: true, summary });
 }
 
 export async function adjustInventory(req: Request, res: Response) {

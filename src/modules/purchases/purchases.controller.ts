@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { Types } from "mongoose";
+import { z } from "zod";
 import { Purchase } from "./purchase.model.js";
 import { PurchaseItem } from "./purchaseItem.model.js";
 import { createPurchaseWithItems, parseCreatePurchaseInput } from "./purchases.service.js";
@@ -32,12 +33,31 @@ export async function createPurchase(req: Request, res: Response) {
   });
 }
 
+const listPurchasesQuerySchema = z.object({
+  limit: z
+    .string()
+    .optional()
+    .transform((v) => (v ? Math.min(Math.max(parseInt(v, 10), 1), 100) : 20)),
+  page: z
+    .string()
+    .optional()
+    .transform((v) => (v ? Math.max(parseInt(v, 10), 1) : 1))
+});
+
 export async function listPurchases(req: Request, res: Response) {
   const shopId = getShopId(req);
+  const query = listPurchasesQuerySchema.parse(req.query);
 
-  const items = await Purchase.find({ shopId }).sort({ purchasedAt: -1, createdAt: -1 });
+  const limit = query.limit;
+  const page = query.page;
+  const skip = (page - 1) * limit;
 
-  return res.json({ ok: true, items });
+  const [items, total] = await Promise.all([
+    Purchase.find({ shopId }).sort({ purchasedAt: -1, createdAt: -1 }).skip(skip).limit(limit),
+    Purchase.countDocuments({ shopId })
+  ]);
+
+  return res.json({ ok: true, page, limit, total, items });
 }
 
 export async function getPurchase(req: Request, res: Response) {

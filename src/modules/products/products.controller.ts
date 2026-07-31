@@ -46,6 +46,17 @@ const listQuerySchema = z.object({
     .optional()
     .transform((v) => (v ? v === "true" : undefined)),
   categoryId: z.string().optional(),
+  sortBy: z.enum(["date_desc", "date_asc", "price_asc", "price_desc"]).optional(),
+  minPrice: z
+    .string()
+    .optional()
+    .transform((v) => (v ? parseFloat(v) : undefined))
+    .pipe(z.number().min(0).optional()),
+  maxPrice: z
+    .string()
+    .optional()
+    .transform((v) => (v ? parseFloat(v) : undefined))
+    .pipe(z.number().min(0).optional()),
   limit: z
     .string()
     .optional()
@@ -131,12 +142,23 @@ export async function listProducts(req: Request, res: Response) {
     ];
   }
 
+  if (query.minPrice !== undefined) filter.sellPrice = { ...filter.sellPrice, $gte: query.minPrice };
+  if (query.maxPrice !== undefined) filter.sellPrice = { ...filter.sellPrice, $lte: query.maxPrice };
+
+  const sortMap: Record<string, Record<string, 1 | -1>> = {
+    date_desc: { createdAt: -1 },
+    date_asc: { createdAt: 1 },
+    price_asc: { sellPrice: 1 },
+    price_desc: { sellPrice: -1 },
+  };
+  const sort = sortMap[query.sortBy ?? "date_desc"] ?? { createdAt: -1 };
+
   const limit = query.limit ?? 20;
   const page = query.page ?? 1;
   const skip = (page - 1) * limit;
 
   const [items, total] = await Promise.all([
-    Product.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    Product.find(filter).sort(sort).skip(skip).limit(limit),
     Product.countDocuments(filter)
   ]);
 
