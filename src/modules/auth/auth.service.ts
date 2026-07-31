@@ -129,13 +129,10 @@ export async function requestOtpForShopService(
   const parsedEmail = z.string().email().parse(email).toLowerCase();
   const tenant = z.string().min(2).max(100).parse(shopId);
 
-  const shop = await Shop.findOne({
-    shopId: tenant,
-    isActive: true
-  });
+  const shop = await Shop.findOne({ shopId: tenant });
 
   if (!shop) {
-    const err: any = new Error("Shop not found or inactive.");
+    const err: any = new Error("Shop not found.");
     err.statusCode = 404;
     throw err;
   }
@@ -143,7 +140,6 @@ export async function requestOtpForShopService(
   const user = await User.findOne({
     email: parsedEmail,
     shopId: tenant,
-    isActive: true
   });
 
   if (!user) {
