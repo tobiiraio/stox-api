@@ -19,7 +19,10 @@ const createShopSchema = z.object({
 
 const updateShopSchema = z.object({
   name: z.string().min(2).max(100).optional(),
-  isActive: z.boolean().optional()
+  isActive: z.boolean().optional(),
+  country: z.string().max(100).optional(),
+  currencyCode: z.string().max(10).optional(),
+  currencySymbol: z.string().max(10).optional()
 });
 
 function generateNumericOtp(length: number) {
@@ -122,7 +125,10 @@ export async function createShop(req: Request, res: Response) {
     shop: {
       shopId: shop.shopId,
       name: shop.name,
-      isActive: shop.isActive
+      isActive: shop.isActive,
+      country: shop.country,
+      currencyCode: shop.currencyCode,
+      currencySymbol: shop.currencySymbol
     },
     owner: {
       id: String(owner._id),
@@ -212,9 +218,12 @@ export async function updateShop(req: Request, res: Response) {
     });
   }
 
-  const update: { name?: string; isActive?: boolean } = {};
+  const update: { name?: string; isActive?: boolean; country?: string; currencyCode?: string; currencySymbol?: string } = {};
   if (typeof data.name === "string") update.name = data.name.trim();
   if (typeof data.isActive === "boolean") update.isActive = data.isActive;
+  if (typeof data.country === "string") update.country = data.country;
+  if (typeof data.currencyCode === "string") update.currencyCode = data.currencyCode;
+  if (typeof data.currencySymbol === "string") update.currencySymbol = data.currencySymbol;
 
   const oldShop = await Shop.findOne({ shopId });
   if (!oldShop) {

@@ -8,6 +8,8 @@ const SaleItemSchema = new Schema(
     productId: { type: Schema.Types.ObjectId, ref: "Product", required: true, index: true },
     productNameSnapshot: { type: String, required: true, trim: true },
 
+    variantId: { type: Schema.Types.ObjectId, ref: "Variant", default: null },
+
     quantity: { type: Number, required: true, min: 1 },
 
     unitPrice: { type: Number, required: true, min: 0 },

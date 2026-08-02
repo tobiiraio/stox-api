@@ -8,7 +8,7 @@ function toObjectId(id: string) {
   return new Types.ObjectId(id);
 }
 
-export async function ensureInventoryBalance(shopId: string, productId: string) {
+export async function ensureInventoryBalance(shopId: string, productId: string, variantId?: string | null) {
   const oid = toObjectId(productId);
   if (!oid) {
     const err: any = new Error("Invalid productId");
@@ -23,9 +23,13 @@ export async function ensureInventoryBalance(shopId: string, productId: string) 
     throw err;
   }
 
+  const variantOid = variantId ? toObjectId(variantId) : null;
+
+  const filter = { shopId, productId: oid, variantId: variantOid };
+
   const balance = await InventoryBalance.findOneAndUpdate(
-    { shopId, productId: oid },
-    { $setOnInsert: { shopId, productId: oid, qtyOnHand: 0 } },
+    filter,
+    { $setOnInsert: { shopId, productId: oid, variantId: variantOid, qtyOnHand: 0 } },
     { upsert: true, new: true }
   );
 
@@ -35,13 +39,14 @@ export async function ensureInventoryBalance(shopId: string, productId: string) 
 export async function applyStockChange(input: {
   shopId: string;
   productId: string;
+  variantId?: string | null;
   type: StockMovementType;
   quantity: number;
   referenceType?: string;
   referenceId?: string;
   note?: string;
 }) {
-  const { shopId, productId, type, quantity, referenceType = "", referenceId = "", note = "" } = input;
+  const { shopId, productId, variantId = null, type, quantity, referenceType = "", referenceId = "", note = "" } = input;
 
   const oid = toObjectId(productId);
   if (!oid) {
@@ -63,7 +68,7 @@ export async function applyStockChange(input: {
     throw err;
   }
 
-  const balance = await ensureInventoryBalance(shopId, productId);
+  const balance = await ensureInventoryBalance(shopId, productId, variantId);
 
   const isOut = type === "SALE" || type === "ADJUST_OUT";
   const signedQty = isOut ? -quantity : quantity;
