@@ -4,6 +4,7 @@ import { Types } from "mongoose";
 import { Product } from "./product.model.js";
 import { ProductCategory } from "./categories/productCategory.model.js";
 import { ensureInventoryBalance } from "../inventory/inventory.service.js";
+import { InventoryBalance } from "../inventory/inventoryBalance.model.js";
 
 function getShopId(req: any) {
   const shopId = req.user?.shopId;
@@ -169,7 +170,22 @@ export async function listProducts(req: Request, res: Response) {
     Product.countDocuments(filter)
   ]);
 
-  return res.json({ ok: true, page, limit, total, items });
+  // Aggregate total stock across all variants for each product
+  const productIds = items.map((p) => p._id);
+  const balances = await InventoryBalance.aggregate([
+    { $match: { shopId, productId: { $in: productIds } } },
+    { $group: { _id: "$productId", stockQty: { $sum: "$qtyOnHand" } } }
+  ]);
+  const stockMap = new Map<string, number>(
+    balances.map((b) => [String(b._id), b.stockQty as number])
+  );
+
+  const enriched = items.map((p) => ({
+    ...p.toObject(),
+    stockQty: stockMap.get(String(p._id)) ?? 0
+  }));
+
+  return res.json({ ok: true, page, limit, total, items: enriched });
 }
 
 export async function getProduct(req: Request, res: Response) {
