@@ -31,6 +31,10 @@ const createSchema = z.object({
 
   unit: z.string().max(20).optional(),
 
+  sellUnit: z.string().max(40).optional(),
+  purchaseUnit: z.string().max(40).optional(),
+  packSize: z.number().int().min(1).optional(),
+
   costPrice: z.number().min(0).optional(),
   sellPrice: z.number().min(0),
 
@@ -106,6 +110,9 @@ export async function createProduct(req: Request, res: Response) {
     categoryId,
     categoryName,
     unit: (data.unit ?? "pcs").trim(),
+    sellUnit: (data.sellUnit ?? "").trim(),
+    purchaseUnit: (data.purchaseUnit ?? "").trim(),
+    packSize: data.packSize ?? 1,
     costPrice: data.costPrice ?? 0,
     sellPrice: data.sellPrice,
     isActive: data.isActive ?? true
@@ -209,6 +216,10 @@ export async function updateProduct(req: Request, res: Response) {
   if (typeof data.barcode === "string") update.barcode = data.barcode.trim();
 
   if (typeof data.unit === "string") update.unit = data.unit.trim();
+
+  if (typeof data.sellUnit === "string") update.sellUnit = data.sellUnit.trim();
+  if (typeof data.purchaseUnit === "string") update.purchaseUnit = data.purchaseUnit.trim();
+  if (typeof data.packSize === "number") update.packSize = data.packSize;
 
   if (typeof data.costPrice === "number") update.costPrice = data.costPrice;
   if (typeof data.sellPrice === "number") update.sellPrice = data.sellPrice;

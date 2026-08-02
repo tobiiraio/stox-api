@@ -12,8 +12,10 @@ function toObjectId(id: string) {
 
 const purchaseItemInputSchema = z.object({
   productId: z.string(),
+  variantId: z.string().optional().nullable(),
   quantity: z.number().positive(),
-  unitCost: z.number().min(0)
+  unitCost: z.number().min(0),
+  isPackPurchase: z.boolean().optional()
 });
 
 const createPurchaseSchema = z.object({
@@ -36,9 +38,12 @@ export async function createPurchaseWithItems(shopId: string, input: CreatePurch
   const preparedItems: Array<{
     productId: Types.ObjectId;
     productNameSnapshot: string;
-    quantity: number;
+    variantId: Types.ObjectId | null;
+    quantity: number;          // sell-unit quantity (already multiplied if pack purchase)
     unitCost: number;
     lineTotal: number;
+    packsOrdered: number | null;
+    packSizeSnapshot: number;
   }> = [];
 
   for (const item of input.items) {
@@ -56,12 +61,30 @@ export async function createPurchaseWithItems(shopId: string, input: CreatePurch
       throw err;
     }
 
+    const variantOid = item.variantId ? toObjectId(item.variantId) : null;
+
+    // Pack conversion logic
+    let sellQuantity = item.quantity;
+    let packsOrdered: number | null = null;
+    let packSizeSnapshot = 1;
+
+    const productPackSize = product.packSize ?? 1;
+
+    if (item.isPackPurchase === true && productPackSize > 1) {
+      packsOrdered = item.quantity;
+      packSizeSnapshot = productPackSize;
+      sellQuantity = item.quantity * productPackSize;
+    }
+
     preparedItems.push({
       productId: oid,
       productNameSnapshot: product.name,
-      quantity: item.quantity,
+      variantId: variantOid,
+      quantity: sellQuantity,
       unitCost: item.unitCost,
-      lineTotal: item.quantity * item.unitCost
+      lineTotal: sellQuantity * item.unitCost,
+      packsOrdered,
+      packSizeSnapshot
     });
   }
 
@@ -82,9 +105,12 @@ export async function createPurchaseWithItems(shopId: string, input: CreatePurch
       purchaseId: purchase._id,
       productId: item.productId,
       productNameSnapshot: item.productNameSnapshot,
+      variantId: item.variantId,
       quantity: item.quantity,
       unitCost: item.unitCost,
-      lineTotal: item.lineTotal
+      lineTotal: item.lineTotal,
+      packsOrdered: item.packsOrdered,
+      packSizeSnapshot: item.packSizeSnapshot
     }))
   );
 
@@ -92,6 +118,7 @@ export async function createPurchaseWithItems(shopId: string, input: CreatePurch
     await applyStockChange({
       shopId,
       productId: String(item.productId),
+      variantId: item.variantId ? String(item.variantId) : null,
       type: "PURCHASE",
       quantity: item.quantity,
       referenceType: "PURCHASE",

@@ -13,6 +13,7 @@ function toObjectId(id: string) {
 
 const saleItemInputSchema = z.object({
   productId: z.string(),
+  variantId: z.string().optional().nullable(),
   quantity: z.number().positive(),
   unitPrice: z.number().min(0).optional()
 });
@@ -47,6 +48,7 @@ export async function createSaleWithItems(shopId: string, input: CreateSaleInput
   const preparedItems: Array<{
     productId: Types.ObjectId;
     productNameSnapshot: string;
+    variantId: Types.ObjectId | null;
     quantity: number;
     unitPrice: number;
     unitCostSnapshot: number;
@@ -70,7 +72,13 @@ export async function createSaleWithItems(shopId: string, input: CreateSaleInput
       throw err;
     }
 
-    const balance = await InventoryBalance.findOne({ shopId, productId: oid });
+    const variantOid = item.variantId ? toObjectId(item.variantId) : null;
+
+    const balance = await InventoryBalance.findOne({
+      shopId,
+      productId: oid,
+      variantId: variantOid
+    });
     const qtyOnHand = balance?.qtyOnHand ?? 0;
 
     if (qtyOnHand < item.quantity) {
@@ -89,6 +97,7 @@ export async function createSaleWithItems(shopId: string, input: CreateSaleInput
     preparedItems.push({
       productId: oid,
       productNameSnapshot: product.name,
+      variantId: variantOid,
       quantity: item.quantity,
       unitPrice,
       unitCostSnapshot,
@@ -126,6 +135,7 @@ export async function createSaleWithItems(shopId: string, input: CreateSaleInput
       saleId: sale._id,
       productId: item.productId,
       productNameSnapshot: item.productNameSnapshot,
+      variantId: item.variantId,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       unitCostSnapshot: item.unitCostSnapshot,
@@ -139,6 +149,7 @@ export async function createSaleWithItems(shopId: string, input: CreateSaleInput
     await applyStockChange({
       shopId,
       productId: String(item.productId),
+      variantId: item.variantId ? String(item.variantId) : null,
       type: "SALE",
       quantity: item.quantity,
       referenceType: "SALE",

@@ -8,9 +8,15 @@ const PurchaseItemSchema = new Schema(
     productId: { type: Schema.Types.ObjectId, ref: "Product", required: true, index: true },
     productNameSnapshot: { type: String, required: true, trim: true },
 
+    variantId: { type: Schema.Types.ObjectId, ref: "Variant", default: null },
+
     quantity: { type: Number, required: true, min: 1 },
     unitCost: { type: Number, required: true, min: 0 },
-    lineTotal: { type: Number, required: true, min: 0 }
+    lineTotal: { type: Number, required: true, min: 0 },
+
+    // Pack conversion fields
+    packsOrdered: { type: Number, default: null },      // how many packs were ordered (null = no pack conversion)
+    packSizeSnapshot: { type: Number, default: 1 }      // packSize at time of purchase (1 = no conversion)
   },
   { timestamps: true, collection: "purchase_items" }
 );

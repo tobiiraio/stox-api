@@ -17,6 +17,11 @@ const ProductSchema = new Schema(
 
     unit: { type: String, default: "pcs", trim: true },
 
+    // Unit conversion fields
+    sellUnit: { type: String, default: "", trim: true },      // e.g. "bottle", "piece"
+    purchaseUnit: { type: String, default: "", trim: true },  // e.g. "carton", "dozen"
+    packSize: { type: Number, default: 1, min: 1 },           // how many sellUnits per purchaseUnit
+
     costPrice: { type: Number, default: 0 },
     sellPrice: { type: Number, required: true },
 
