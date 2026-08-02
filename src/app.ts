@@ -25,6 +25,8 @@ import { reportsRouter } from "./modules/reports/reports.routes.js";
 export function createApp() {
   const app = express();
 
+  app.set("trust proxy", 1);
+
   const corsOptions: cors.CorsOptions = {
     origin: (origin, cb) => {
       if (!origin) return cb(null, true);
