@@ -173,6 +173,53 @@ export async function getTopProducts(req: Request, res: Response) {
   });
 }
 
+export async function getDailyReport(req: Request, res: Response) {
+  const shopId = getShopId(req);
+
+  const dailySchema = z.object({
+    from: z.string().min(1),
+    to: z.string().min(1),
+  });
+
+  const { from: fromStr, to: toStr } = dailySchema.parse(req.query);
+
+  const from = new Date(`${fromStr}T00:00:00.000Z`);
+  const to = new Date(`${toStr}T23:59:59.999Z`);
+
+  const sales = await Sale.find({
+    shopId,
+    soldAt: { $gte: from, $lte: to }
+  }).lean();
+
+  // Group by date string YYYY-MM-DD
+  const dayMap = new Map<string, { date: string; salesCount: number; revenue: number; cost: number; profit: number }>();
+
+  for (const sale of sales) {
+    const date = sale.soldAt.toISOString().slice(0, 10);
+    const existing = dayMap.get(date) ?? { date, salesCount: 0, revenue: 0, cost: 0, profit: 0 };
+    existing.salesCount += 1;
+    existing.revenue += sale.totalAmount;
+    existing.cost += sale.totalCost;
+    existing.profit += sale.grossProfit;
+    dayMap.set(date, existing);
+  }
+
+  // Fill in missing days with zeros
+  const days: typeof dayMap extends Map<string, infer V> ? V[] : never[] = [];
+  const cursor = new Date(from);
+  while (cursor <= to) {
+    const date = cursor.toISOString().slice(0, 10);
+    days.push(dayMap.get(date) ?? { date, salesCount: 0, revenue: 0, cost: 0, profit: 0 });
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return res.json({
+    ok: true,
+    range: { from, to },
+    days
+  });
+}
+
 export async function getLowStock(req: Request, res: Response) {
   const shopId = getShopId(req);
 
