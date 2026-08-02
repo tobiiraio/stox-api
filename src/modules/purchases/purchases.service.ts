@@ -4,6 +4,7 @@ import { Product } from "../products/product.model.js";
 import { Purchase } from "./purchase.model.js";
 import { PurchaseItem } from "./purchaseItem.model.js";
 import { applyStockChange } from "../inventory/inventory.service.js";
+import { Supplier } from "../suppliers/supplier.model.js";
 
 function toObjectId(id: string) {
   if (!Types.ObjectId.isValid(id)) return null;
@@ -19,6 +20,7 @@ const purchaseItemInputSchema = z.object({
 });
 
 const createPurchaseSchema = z.object({
+  supplierId: z.string().optional().nullable(),
   supplierName: z.string().max(120).optional(),
   invoiceNumber: z.string().max(80).optional(),
   purchasedAt: z.string().datetime().optional(),
@@ -90,9 +92,24 @@ export async function createPurchaseWithItems(shopId: string, input: CreatePurch
 
   const totalAmount = preparedItems.reduce((sum, item) => sum + item.lineTotal, 0);
 
+  // Resolve supplier name from supplierId if provided
+  let supplierId: Types.ObjectId | null = null;
+  let supplierName = input.supplierName ?? "";
+  if (input.supplierId) {
+    const soid = toObjectId(input.supplierId);
+    if (soid) {
+      const supplier = await Supplier.findOne({ _id: soid, shopId });
+      if (supplier) {
+        supplierId = soid;
+        supplierName = supplier.name;
+      }
+    }
+  }
+
   const purchase = await Purchase.create({
     shopId,
-    supplierName: input.supplierName ?? "",
+    supplierId,
+    supplierName,
     invoiceNumber: input.invoiceNumber ?? "",
     totalAmount,
     purchasedAt,

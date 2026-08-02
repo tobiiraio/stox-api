@@ -6,6 +6,7 @@ const ShopSchema = new Schema(
     name: { type: String, required: true, trim: true },
     ownerEmail: { type: String, required: true, lowercase: true, trim: true },
     isActive: { type: Boolean, default: false },
+    phone: { type: String, default: '' },
     country: { type: String, default: '' },
     currencyCode: { type: String, default: 'USD' },
     currencySymbol: { type: String, default: '$' }

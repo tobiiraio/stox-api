@@ -4,6 +4,7 @@ const PurchaseSchema = new Schema(
   {
     shopId: { type: String, required: true, index: true },
 
+    supplierId: { type: Schema.Types.ObjectId, ref: "Supplier", default: null },
     supplierName: { type: String, default: "", trim: true },
     invoiceNumber: { type: String, default: "", trim: true },
 

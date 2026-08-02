@@ -20,6 +20,7 @@ const createShopSchema = z.object({
 const updateShopSchema = z.object({
   name: z.string().min(2).max(100).optional(),
   isActive: z.boolean().optional(),
+  phone: z.string().max(30).optional(),
   country: z.string().max(100).optional(),
   currencyCode: z.string().max(10).optional(),
   currencySymbol: z.string().max(10).optional()
@@ -218,9 +219,10 @@ export async function updateShop(req: Request, res: Response) {
     });
   }
 
-  const update: { name?: string; isActive?: boolean; country?: string; currencyCode?: string; currencySymbol?: string } = {};
+  const update: { name?: string; isActive?: boolean; phone?: string; country?: string; currencyCode?: string; currencySymbol?: string } = {};
   if (typeof data.name === "string") update.name = data.name.trim();
   if (typeof data.isActive === "boolean") update.isActive = data.isActive;
+  if (typeof data.phone === "string") update.phone = data.phone.trim();
   if (typeof data.country === "string") update.country = data.country;
   if (typeof data.currencyCode === "string") update.currencyCode = data.currencyCode;
   if (typeof data.currencySymbol === "string") update.currencySymbol = data.currencySymbol;
