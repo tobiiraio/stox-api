@@ -22,6 +22,7 @@ import { purchasesRouter } from "./modules/purchases/purchases.routes.js";
 import { salesRouter } from "./modules/sales/sales.routes.js";
 import { reportsRouter } from "./modules/reports/reports.routes.js";
 import suppliersRouter from "./modules/suppliers/suppliers.routes.js";
+import { exportsRouter } from "./modules/exports/exports.routes.js";
 
 export function createApp() {
   const app = express();
@@ -64,7 +65,8 @@ export function createApp() {
   app.use("/api/sales", salesRouter);
   app.use("/api/reports", reportsRouter);
   app.use("/api/suppliers", suppliersRouter);
-  
+  app.use("/api/exports", exportsRouter);
+
 
   app.use(errorHandler);
 
