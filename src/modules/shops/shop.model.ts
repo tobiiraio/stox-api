@@ -7,9 +7,9 @@ const ShopSchema = new Schema(
     ownerEmail: { type: String, required: true, lowercase: true, trim: true },
     isActive: { type: Boolean, default: false },
     phone: { type: String, default: '' },
-    country: { type: String, default: '' },
-    currencyCode: { type: String, default: 'USD' },
-    currencySymbol: { type: String, default: '$' }
+    country: { type: String, default: 'Uganda' },
+    currencyCode: { type: String, default: 'UGX' },
+    currencySymbol: { type: String, default: 'UGX' }
   },
   { timestamps: true }
 );
